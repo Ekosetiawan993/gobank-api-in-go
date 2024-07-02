@@ -124,6 +124,15 @@ func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 	if err := s.store.CreateAccount(account); err != nil {
 		return err
 	}
+
+	// video 4. 3
+	tokenString, err := createJWT(account)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("JWT token: ", tokenString)
+
 	return WriteJSON(w, http.StatusOK, account)
 }
 
@@ -158,6 +167,22 @@ func getId(r *http.Request) (int, error) {
 	}
 
 	return id, nil
+}
+
+// video 4.3
+// create jwt token when creating account
+func createJWT(account *Account) (string, error) {
+	// Create the Claims
+	claims := &jwt.MapClaims{
+		"ExpiresAt":     15000,
+		"accountNumber": account.Number,
+	}
+	secret := os.Getenv("JWT_SECRET")
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	return token.SignedString([]byte(secret))
+	// fmt.Println(ss, err)
 }
 
 // video 4. JWT middleware
