@@ -54,6 +54,8 @@ func NewAPIServer(listenAddr string, store Storage) *APIServer {
 // server initialization: 6
 func (s *APIServer) Run() {
 	router := mux.NewRouter()
+	// video 5 .1
+	router.HandleFunc("/login", makeHTTPHandleFunc(s.handleLogin))
 	// we need to wrap the handle bsc HandleFunc don't return
 	router.HandleFunc("/account", makeHTTPHandleFunc(s.handleAccount))
 	router.HandleFunc("/account/{id}", withJWTAuth(makeHTTPHandleFunc(s.handleGetAccountById), s.store))
@@ -61,6 +63,18 @@ func (s *APIServer) Run() {
 
 	log.Println("JSON API run on port: ", s.listenAddr)
 	http.ListenAndServe(s.listenAddr, router)
+}
+
+// video 5.2
+func (s *APIServer) handleLogin(w http.ResponseWriter, r *http.Request) error {
+	if r.Method != "POST" {
+		return fmt.Errorf("method not allowed %s", r.Method)
+	}
+	var req LoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return err
+	}
+	return WriteJSON(w, http.StatusOK, req)
 }
 
 // handlers 3
@@ -118,7 +132,11 @@ func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// make account object
-	account := NewAccount(createAccountRequest.FirstName, createAccountRequest.LastName)
+	account, err := NewAccount(createAccountRequest.FirstName, createAccountRequest.LastName, createAccountRequest.Password)
+	// video 5.4
+	if err != nil {
+		return err
+	}
 
 	// put account on db
 	if err := s.store.CreateAccount(account); err != nil {
